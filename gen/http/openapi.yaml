@@ -1,0 +1,542 @@
+swagger: "2.0"
+info:
+  title: User Service
+  description: HTTP service for managing user service
+  version: ""
+host: localhost:8000
+consumes:
+- application/json
+- application/xml
+- application/gob
+produces:
+- application/json
+- application/xml
+- application/gob
+paths:
+  /email/active:
+    post:
+      tags:
+      - email
+      summary: send_email email
+      description: Send email to active user
+      operationId: email#send_email
+      parameters:
+      - name: send_email_request_body
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/EmailSendEmailRequestBody'
+          required:
+          - email
+      responses:
+        "200":
+          description: OK response.
+          schema:
+            type: string
+        "400":
+          description: Bad Request response.
+          schema:
+            $ref: '#/definitions/EmailSendEmailEmailNotFoundResponseBody'
+            required:
+            - message
+            - id
+      schemes:
+      - http
+  /email/active/{code}:
+    get:
+      tags:
+      - email
+      summary: active email
+      description: Active user by email code
+      operationId: email#active
+      parameters:
+      - name: code
+        in: path
+        description: operand
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK response.
+          schema:
+            type: string
+        "400":
+          description: Bad Request response.
+          schema:
+            $ref: '#/definitions/EmailActiveInvalideCodeResponseBody'
+            required:
+            - message
+            - id
+      schemes:
+      - http
+  /file/upload:
+    post:
+      tags:
+      - file
+      summary: upload file
+      description: Upload static file
+      operationId: file#upload
+      parameters:
+      - name: UploadRequestBody
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/FileUploadRequestBody'
+          required:
+          - file
+      responses:
+        "200":
+          description: OK response.
+          schema:
+            type: string
+        "400":
+          description: Bad Request response.
+          schema:
+            $ref: '#/definitions/FileUploadFileUploadErrResponseBody'
+            required:
+            - message
+            - id
+      schemes:
+      - http
+  /swagger/swagger.json:
+    get:
+      summary: Download gen/http/openapi.json
+      description: JSON document containing the API swagger definition
+      operationId: swagger#/swagger/swagger.json
+      responses:
+        "200":
+          description: File downloaded
+          schema:
+            type: file
+      schemes:
+      - http
+  /user/current_user:
+    get:
+      tags:
+      - userProfile
+      summary: retrieve userProfile
+      description: |-
+        Show userProfile by Token
+
+        **Required security scopes for jwt**:
+          * `api:read`
+      operationId: userProfile#retrieve
+      parameters:
+      - name: Authorization
+        in: header
+        description: JWT used for authentication
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK response.
+          schema:
+            $ref: '#/definitions/UserProfileRetrieveResponseBody'
+        "400":
+          description: Bad Request response.
+          schema:
+            $ref: '#/definitions/UserProfileRetrieveInvalideTokenResponseBody'
+            required:
+            - message
+            - id
+        "404":
+          description: Not Found response.
+          schema:
+            $ref: '#/definitions/UserProfileRetrieveNotFoundResponseBody'
+            required:
+            - message
+            - id
+      schemes:
+      - http
+      security:
+      - jwt_header_Authorization: []
+  /user/register:
+    post:
+      tags:
+      - userProfile
+      summary: create userProfile
+      description: Add new user and return its ID.
+      operationId: userProfile#create
+      parameters:
+      - name: CreateRequestBody
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/UserProfileCreateRequestBody'
+          required:
+          - email
+          - password
+      responses:
+        "201":
+          description: Created response.
+          schema:
+            type: string
+        "400":
+          description: Bad Request response.
+          schema:
+            $ref: '#/definitions/UserProfileCreateEmailExistResponseBody'
+            required:
+            - message
+            - id
+      schemes:
+      - http
+  /user/signin:
+    post:
+      tags:
+      - userProfile
+      summary: signin userProfile
+      description: Creates a valid JWT
+      operationId: userProfile#signin
+      parameters:
+      - name: SigninRequestBody
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/UserProfileSigninRequestBody'
+          required:
+          - email
+          - password
+      responses:
+        "200":
+          description: OK response.
+          schema:
+            type: string
+        "400":
+          description: Bad Request response.
+          schema:
+            $ref: '#/definitions/UserProfileSigninEmailOrPasswordErrorResponseBody'
+            required:
+            - message
+            - id
+      schemes:
+      - http
+  /user/update:
+    put:
+      tags:
+      - userProfile
+      summary: update userProfile
+      description: |-
+        Update avatar and nickname about user
+
+        **Required security scopes for jwt**:
+          * `api:read`
+      operationId: userProfile#update
+      parameters:
+      - name: Authorization
+        in: header
+        description: JWT used for authentication
+        required: true
+        type: string
+      - name: UpdateRequestBody
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/UserProfileUpdateRequestBody'
+          required:
+          - avator
+          - nickname
+      responses:
+        "204":
+          description: No Content response.
+        "400":
+          description: Bad Request response.
+          schema:
+            $ref: '#/definitions/UserProfileUpdateInvalideTokenResponseBody'
+            required:
+            - message
+            - id
+      schemes:
+      - http
+      security:
+      - jwt_header_Authorization: []
+definitions:
+  EmailActiveInvalideCodeResponseBody:
+    title: EmailActiveInvalideCodeResponseBody
+    type: object
+    properties:
+      id:
+        type: string
+        description: ID of missing user
+        example: Enim quod autem sit sit.
+      message:
+        type: string
+        description: Message of error
+        example: invalid email
+    description: invalide code
+    example:
+      id: Neque qui culpa voluptas.
+      message: invalid email
+    required:
+    - message
+    - id
+  EmailSendEmailEmailNotFoundResponseBody:
+    title: EmailSendEmailEmailNotFoundResponseBody
+    type: object
+    properties:
+      id:
+        type: string
+        description: ID of missing user
+        example: Dolorem quibusdam et odit eveniet eum architecto.
+      message:
+        type: string
+        description: Message of error
+        example: email not found
+    description: email not found
+    example:
+      id: Cum iusto veritatis consectetur.
+      message: email not found
+    required:
+    - message
+    - id
+  EmailSendEmailInvalideEmailResponseBody:
+    title: EmailSendEmailInvalideEmailResponseBody
+    type: object
+    properties:
+      id:
+        type: string
+        description: ID of missing user
+        example: Beatae amet.
+      message:
+        type: string
+        description: Message of error
+        example: invalid email
+    description: invalide email
+    example:
+      id: Aut aut.
+      message: invalid email
+    required:
+    - message
+    - id
+  EmailSendEmailRequestBody:
+    title: EmailSendEmailRequestBody
+    type: object
+    properties:
+      email:
+        type: string
+        description: email of userProfile
+        example: 123@456.com
+        pattern: \S+@\S+\.\S+
+    example:
+      email: 123@456.com
+    required:
+    - email
+  FileUploadFileUploadErrResponseBody:
+    title: FileUploadFileUploadErrResponseBody
+    type: object
+    properties:
+      id:
+        type: string
+        description: ID of missing user
+        example: Ratione eaque autem.
+      message:
+        type: string
+        description: Message of error
+        example: file upload error
+    description: file upload error
+    example:
+      id: Expedita est illum natus quaerat.
+      message: file upload error
+    required:
+    - message
+    - id
+  FileUploadRequestBody:
+    title: FileUploadRequestBody
+    type: object
+    properties:
+      file:
+        type: string
+        description: file
+        example: In et.
+    example:
+      file: Illo pariatur quis dolores dignissimos.
+    required:
+    - file
+  UserProfileCreateEmailExistResponseBody:
+    title: UserProfileCreateEmailExistResponseBody
+    type: object
+    properties:
+      id:
+        type: string
+        description: ID of missing user
+        example: Quo labore facere.
+      message:
+        type: string
+        description: Message of error
+        example: email is exist
+    example:
+      id: Et perspiciatis vero nihil.
+      message: email is exist
+    required:
+    - message
+    - id
+  UserProfileCreateRequestBody:
+    title: UserProfileCreateRequestBody
+    type: object
+    properties:
+      email:
+        type: string
+        description: email of userProfile
+        example: 123@456.com
+        pattern: \S+@\S+\.\S+
+      password:
+        type: string
+        description: password of userProfile
+        example: "123456"
+        minLength: 6
+    example:
+      email: 123@456.com
+      password: "123456"
+    required:
+    - email
+    - password
+  UserProfileRetrieveInvalideTokenResponseBody:
+    title: UserProfileRetrieveInvalideTokenResponseBody
+    type: object
+    properties:
+      id:
+        type: string
+        description: ID of missing user
+        example: Sunt voluptatem doloremque id illo.
+      message:
+        type: string
+        description: Message of error
+        example: invalid token
+    description: invalide token
+    example:
+      id: Facere vel.
+      message: invalid token
+    required:
+    - message
+    - id
+  UserProfileRetrieveNotFoundResponseBody:
+    title: UserProfileRetrieveNotFoundResponseBody
+    type: object
+    properties:
+      id:
+        type: string
+        description: ID of missing user
+        example: Qui autem voluptate optio rerum.
+      message:
+        type: string
+        description: Message of error
+        example: user 1 not found
+    description: User not found
+    example:
+      id: Minus aut in amet.
+      message: user 1 not found
+    required:
+    - message
+    - id
+  UserProfileRetrieveResponseBody:
+    title: 'Mediatype identifier: userprofile; view=default'
+    type: object
+    properties:
+      avator:
+        type: string
+        example: Architecto libero autem non facilis et.
+      email:
+        type: string
+        description: email of userProfile
+        example: 123@456.com
+        pattern: \S+@\S+\.\S+
+      id:
+        type: string
+        description: ID is the unique id of the userProfile.
+        example: 123abc
+      nickname:
+        type: string
+        example: Quis ducimus qui veniam.
+    description: RetrieveResponseBody result type (default view)
+    example:
+      avator: Dicta ea officiis.
+      email: 123@456.com
+      id: 123abc
+      nickname: Eveniet sunt nemo qui nam sint rem.
+    required:
+    - id
+    - email
+  UserProfileSigninEmailOrPasswordErrorResponseBody:
+    title: UserProfileSigninEmailOrPasswordErrorResponseBody
+    type: object
+    properties:
+      id:
+        type: string
+        description: ID of missing user
+        example: Blanditiis quia amet nihil in sed.
+      message:
+        type: string
+        description: Message of error
+        example: email or password error
+    example:
+      id: Nulla quia facere est qui veritatis architecto.
+      message: email or password error
+    required:
+    - message
+    - id
+  UserProfileSigninRequestBody:
+    title: UserProfileSigninRequestBody
+    type: object
+    properties:
+      email:
+        type: string
+        description: Email used to perform signin
+        example: 1@1.com
+      password:
+        type: string
+        description: Password used to perform signin
+        example: "123456"
+    description: Credentials used to authenticate to retrieve JWT token
+    example:
+      email: 1@1.com
+      password: "123456"
+    required:
+    - email
+    - password
+  UserProfileUpdateInvalideTokenResponseBody:
+    title: UserProfileUpdateInvalideTokenResponseBody
+    type: object
+    properties:
+      id:
+        type: string
+        description: ID of missing user
+        example: Sunt voluptas praesentium doloremque consequuntur.
+      message:
+        type: string
+        description: Message of error
+        example: invalid token
+    description: invalide token
+    example:
+      id: Nam magni molestiae minus eum qui.
+      message: invalid token
+    required:
+    - message
+    - id
+  UserProfileUpdateRequestBody:
+    title: UserProfileUpdateRequestBody
+    type: object
+    properties:
+      avator:
+        type: string
+        description: avator of userProfile
+        example: https://www.baidu.com/img/bd_logo1.png?where=super
+      nickname:
+        type: string
+        description: nickname of userProfile
+        example: Bobby
+    example:
+      avator: https://www.baidu.com/img/bd_logo1.png?where=super
+      nickname: Bobby
+    required:
+    - avator
+    - nickname
+securityDefinitions:
+  jwt_header_Authorization:
+    type: apiKey
+    description: |-
+      Secures endpoint by requiring a valid JWT token retrieved via the signin endpoint. Supports scopes "api:read" and "api:write".
+
+      **Security Scopes**:
+        * `api:read`: Read-only access
+        * `api:write`: Read and write access
+    name: Authorization
+    in: header

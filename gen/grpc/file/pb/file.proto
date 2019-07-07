@@ -1,0 +1,34 @@
+// Code generated with goa v3.0.2, DO NOT EDIT.
+//
+// file protocol buffer definition
+//
+// Command:
+// $ goa gen user/design
+
+syntax = "proto3";
+
+package file;
+
+option go_package = "filepb";
+
+// The file service makes it possible to upload static file.
+service File {
+	// Upload static file
+	rpc Upload (UploadRequest) returns (UploadResponse);
+}
+
+message UploadFileUploadErrError {
+	// Message of error
+	string message_ = 1;
+	// ID of missing user
+	string id = 2;
+}
+
+message UploadRequest {
+	// file
+	string file = 1;
+}
+
+message UploadResponse {
+	string field = 1;
+}
