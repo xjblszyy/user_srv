@@ -3,14 +3,15 @@
 // file HTTP server encoders and decoders
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package server
 
 import (
 	"context"
 	"net/http"
-	file "user/gen/file"
+	file "user-srv/gen/file"
+	fileviews "user-srv/gen/file/views"
 
 	goahttp "goa.design/goa/v3/http"
 	goa "goa.design/goa/v3/pkg"
@@ -20,9 +21,9 @@ import (
 // upload endpoint.
 func EncodeUploadResponse(encoder func(context.Context, http.ResponseWriter) goahttp.Encoder) func(context.Context, http.ResponseWriter, interface{}) error {
 	return func(ctx context.Context, w http.ResponseWriter, v interface{}) error {
-		res := v.(string)
+		res := v.(*fileviews.ResponseData)
 		enc := encoder(ctx, w)
-		body := res
+		body := NewUploadResponseBody(res.Projected)
 		w.WriteHeader(http.StatusOK)
 		return enc.Encode(body)
 	}
@@ -70,7 +71,7 @@ func EncodeUploadError(encoder func(context.Context, http.ResponseWriter) goahtt
 		}
 		switch en.ErrorName() {
 		case "file_upload_err":
-			res := v.(*file.FileUploadErr)
+			res := v.(*goa.ServiceError)
 			enc := encoder(ctx, w)
 			body := NewUploadFileUploadErrResponseBody(res)
 			w.Header().Set("goa-error", "file_upload_err")

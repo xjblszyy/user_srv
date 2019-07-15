@@ -3,7 +3,7 @@
 // user HTTP client CLI support package
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package cli
 
@@ -12,9 +12,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	emailc "user/gen/http/email/client"
-	filec "user/gen/http/file/client"
-	userprofilec "user/gen/http/user_profile/client"
+	filec "user-srv/gen/http/file/client"
+	userc "user-srv/gen/http/user/client"
 
 	goahttp "goa.design/goa/v3/http"
 	goa "goa.design/goa/v3/pkg"
@@ -25,19 +24,17 @@ import (
 //    command (subcommand1|subcommand2|...)
 //
 func UsageCommands() string {
-	return `email (active|send-email)
-file upload
-user-profile (retrieve|create|signin|update)
+	return `file upload
+user (retrieve|create|signin|update|send-email|active-email)
 `
 }
 
 // UsageExamples produces an example of a valid invocation of the CLI tool.
 func UsageExamples() string {
-	return os.Args[0] + ` email active --code "Officiis velit quaerat nam velit incidunt."` + "\n" +
-		os.Args[0] + ` file upload --body '{
-      "file": "Eaque quia cupiditate cumque quibusdam accusantium et."
+	return os.Args[0] + ` file upload --body '{
+      "file": "Et expedita earum delectus."
    }'` + "\n" +
-		os.Args[0] + ` user-profile retrieve --token "Earum aut maiores harum impedit enim."` + "\n" +
+		os.Args[0] + ` user retrieve --token "Ex sed."` + "\n" +
 		""
 }
 
@@ -52,46 +49,42 @@ func ParseEndpoint(
 	fileUploadEncoderFn filec.FileUploadEncoderFunc,
 ) (goa.Endpoint, interface{}, error) {
 	var (
-		emailFlags = flag.NewFlagSet("email", flag.ContinueOnError)
-
-		emailActiveFlags    = flag.NewFlagSet("active", flag.ExitOnError)
-		emailActiveCodeFlag = emailActiveFlags.String("code", "REQUIRED", "operand")
-
-		emailSendEmailFlags    = flag.NewFlagSet("send-email", flag.ExitOnError)
-		emailSendEmailBodyFlag = emailSendEmailFlags.String("body", "REQUIRED", "")
-
 		fileFlags = flag.NewFlagSet("file", flag.ContinueOnError)
 
 		fileUploadFlags    = flag.NewFlagSet("upload", flag.ExitOnError)
 		fileUploadBodyFlag = fileUploadFlags.String("body", "REQUIRED", "")
 
-		userProfileFlags = flag.NewFlagSet("user-profile", flag.ContinueOnError)
+		userFlags = flag.NewFlagSet("user", flag.ContinueOnError)
 
-		userProfileRetrieveFlags     = flag.NewFlagSet("retrieve", flag.ExitOnError)
-		userProfileRetrieveTokenFlag = userProfileRetrieveFlags.String("token", "REQUIRED", "")
+		userRetrieveFlags     = flag.NewFlagSet("retrieve", flag.ExitOnError)
+		userRetrieveTokenFlag = userRetrieveFlags.String("token", "REQUIRED", "")
 
-		userProfileCreateFlags    = flag.NewFlagSet("create", flag.ExitOnError)
-		userProfileCreateBodyFlag = userProfileCreateFlags.String("body", "REQUIRED", "")
+		userCreateFlags    = flag.NewFlagSet("create", flag.ExitOnError)
+		userCreateBodyFlag = userCreateFlags.String("body", "REQUIRED", "")
 
-		userProfileSigninFlags    = flag.NewFlagSet("signin", flag.ExitOnError)
-		userProfileSigninBodyFlag = userProfileSigninFlags.String("body", "REQUIRED", "")
+		userSigninFlags    = flag.NewFlagSet("signin", flag.ExitOnError)
+		userSigninBodyFlag = userSigninFlags.String("body", "REQUIRED", "")
 
-		userProfileUpdateFlags     = flag.NewFlagSet("update", flag.ExitOnError)
-		userProfileUpdateBodyFlag  = userProfileUpdateFlags.String("body", "REQUIRED", "")
-		userProfileUpdateTokenFlag = userProfileUpdateFlags.String("token", "REQUIRED", "")
+		userUpdateFlags     = flag.NewFlagSet("update", flag.ExitOnError)
+		userUpdateBodyFlag  = userUpdateFlags.String("body", "REQUIRED", "")
+		userUpdateTokenFlag = userUpdateFlags.String("token", "REQUIRED", "")
+
+		userSendEmailFlags    = flag.NewFlagSet("send-email", flag.ExitOnError)
+		userSendEmailBodyFlag = userSendEmailFlags.String("body", "REQUIRED", "")
+
+		userActiveEmailFlags    = flag.NewFlagSet("active-email", flag.ExitOnError)
+		userActiveEmailCodeFlag = userActiveEmailFlags.String("code", "REQUIRED", "The code for email to active")
 	)
-	emailFlags.Usage = emailUsage
-	emailActiveFlags.Usage = emailActiveUsage
-	emailSendEmailFlags.Usage = emailSendEmailUsage
-
 	fileFlags.Usage = fileUsage
 	fileUploadFlags.Usage = fileUploadUsage
 
-	userProfileFlags.Usage = userProfileUsage
-	userProfileRetrieveFlags.Usage = userProfileRetrieveUsage
-	userProfileCreateFlags.Usage = userProfileCreateUsage
-	userProfileSigninFlags.Usage = userProfileSigninUsage
-	userProfileUpdateFlags.Usage = userProfileUpdateUsage
+	userFlags.Usage = userUsage
+	userRetrieveFlags.Usage = userRetrieveUsage
+	userCreateFlags.Usage = userCreateUsage
+	userSigninFlags.Usage = userSigninUsage
+	userUpdateFlags.Usage = userUpdateUsage
+	userSendEmailFlags.Usage = userSendEmailUsage
+	userActiveEmailFlags.Usage = userActiveEmailUsage
 
 	if err := flag.CommandLine.Parse(os.Args[1:]); err != nil {
 		return nil, nil, err
@@ -108,12 +101,10 @@ func ParseEndpoint(
 	{
 		svcn = flag.Arg(0)
 		switch svcn {
-		case "email":
-			svcf = emailFlags
 		case "file":
 			svcf = fileFlags
-		case "user-profile":
-			svcf = userProfileFlags
+		case "user":
+			svcf = userFlags
 		default:
 			return nil, nil, fmt.Errorf("unknown service %q", svcn)
 		}
@@ -129,16 +120,6 @@ func ParseEndpoint(
 	{
 		epn = svcf.Arg(0)
 		switch svcn {
-		case "email":
-			switch epn {
-			case "active":
-				epf = emailActiveFlags
-
-			case "send-email":
-				epf = emailSendEmailFlags
-
-			}
-
 		case "file":
 			switch epn {
 			case "upload":
@@ -146,19 +127,25 @@ func ParseEndpoint(
 
 			}
 
-		case "user-profile":
+		case "user":
 			switch epn {
 			case "retrieve":
-				epf = userProfileRetrieveFlags
+				epf = userRetrieveFlags
 
 			case "create":
-				epf = userProfileCreateFlags
+				epf = userCreateFlags
 
 			case "signin":
-				epf = userProfileSigninFlags
+				epf = userSigninFlags
 
 			case "update":
-				epf = userProfileUpdateFlags
+				epf = userUpdateFlags
+
+			case "send-email":
+				epf = userSendEmailFlags
+
+			case "active-email":
+				epf = userActiveEmailFlags
 
 			}
 
@@ -182,16 +169,6 @@ func ParseEndpoint(
 	)
 	{
 		switch svcn {
-		case "email":
-			c := emailc.NewClient(scheme, host, doer, enc, dec, restore)
-			switch epn {
-			case "active":
-				endpoint = c.Active()
-				data, err = emailc.BuildActivePayload(*emailActiveCodeFlag)
-			case "send-email":
-				endpoint = c.SendEmail()
-				data, err = emailc.BuildSendEmailPayload(*emailSendEmailBodyFlag)
-			}
 		case "file":
 			c := filec.NewClient(scheme, host, doer, enc, dec, restore)
 			switch epn {
@@ -199,21 +176,27 @@ func ParseEndpoint(
 				endpoint = c.Upload(fileUploadEncoderFn)
 				data, err = filec.BuildUploadPayload(*fileUploadBodyFlag)
 			}
-		case "user-profile":
-			c := userprofilec.NewClient(scheme, host, doer, enc, dec, restore)
+		case "user":
+			c := userc.NewClient(scheme, host, doer, enc, dec, restore)
 			switch epn {
 			case "retrieve":
 				endpoint = c.Retrieve()
-				data, err = userprofilec.BuildRetrievePayload(*userProfileRetrieveTokenFlag)
+				data, err = userc.BuildRetrievePayload(*userRetrieveTokenFlag)
 			case "create":
 				endpoint = c.Create()
-				data, err = userprofilec.BuildCreatePayload(*userProfileCreateBodyFlag)
+				data, err = userc.BuildCreatePayload(*userCreateBodyFlag)
 			case "signin":
 				endpoint = c.Signin()
-				data, err = userprofilec.BuildSigninPayload(*userProfileSigninBodyFlag)
+				data, err = userc.BuildSigninPayload(*userSigninBodyFlag)
 			case "update":
 				endpoint = c.Update()
-				data, err = userprofilec.BuildUpdatePayload(*userProfileUpdateBodyFlag, *userProfileUpdateTokenFlag)
+				data, err = userc.BuildUpdatePayload(*userUpdateBodyFlag, *userUpdateTokenFlag)
+			case "send-email":
+				endpoint = c.SendEmail()
+				data, err = userc.BuildSendEmailPayload(*userSendEmailBodyFlag)
+			case "active-email":
+				endpoint = c.ActiveEmail()
+				data, err = userc.BuildActiveEmailPayload(*userActiveEmailCodeFlag)
 			}
 		}
 	}
@@ -222,44 +205,6 @@ func ParseEndpoint(
 	}
 
 	return endpoint, data, nil
-}
-
-// emailUsage displays the usage of the email command and its subcommands.
-func emailUsage() {
-	fmt.Fprintf(os.Stderr, `The email service makes it possible to active user and send active email.
-Usage:
-    %s [globalflags] email COMMAND [flags]
-
-COMMAND:
-    active: Active user by email code
-    send-email: Send email to active user
-
-Additional help:
-    %s email COMMAND --help
-`, os.Args[0], os.Args[0])
-}
-func emailActiveUsage() {
-	fmt.Fprintf(os.Stderr, `%s [flags] email active -code STRING
-
-Active user by email code
-    -code STRING: operand
-
-Example:
-    `+os.Args[0]+` email active --code "Officiis velit quaerat nam velit incidunt."
-`, os.Args[0])
-}
-
-func emailSendEmailUsage() {
-	fmt.Fprintf(os.Stderr, `%s [flags] email send-email -body JSON
-
-Send email to active user
-    -body JSON: 
-
-Example:
-    `+os.Args[0]+` email send-email --body '{
-      "email": "123@456.com"
-   }'
-`, os.Args[0])
 }
 
 // fileUsage displays the usage of the file command and its subcommands.
@@ -283,78 +228,103 @@ Upload static file
 
 Example:
     `+os.Args[0]+` file upload --body '{
-      "file": "Eaque quia cupiditate cumque quibusdam accusantium et."
+      "file": "Et expedita earum delectus."
    }'
 `, os.Args[0])
 }
 
-// user-profileUsage displays the usage of the user-profile command and its
-// subcommands.
-func userProfileUsage() {
-	fmt.Fprintf(os.Stderr, `The userProfile service makes it possible to view, add or remove user info.
+// userUsage displays the usage of the user command and its subcommands.
+func userUsage() {
+	fmt.Fprintf(os.Stderr, `The user service makes it possible to view, add or update user info.
 Usage:
-    %s [globalflags] user-profile COMMAND [flags]
+    %s [globalflags] user COMMAND [flags]
 
 COMMAND:
-    retrieve: Show userProfile by Token
-    create: Add new user and return its ID.
+    retrieve: Show user info by Token
+    create: Add new user
     signin: Creates a valid JWT
     update: Update avatar and nickname about user
+    send-email: Send email to active user
+    active-email: Active email to user
 
 Additional help:
-    %s user-profile COMMAND --help
+    %s user COMMAND --help
 `, os.Args[0], os.Args[0])
 }
-func userProfileRetrieveUsage() {
-	fmt.Fprintf(os.Stderr, `%s [flags] user-profile retrieve -token STRING
+func userRetrieveUsage() {
+	fmt.Fprintf(os.Stderr, `%s [flags] user retrieve -token STRING
 
-Show userProfile by Token
+Show user info by Token
     -token STRING: 
 
 Example:
-    `+os.Args[0]+` user-profile retrieve --token "Earum aut maiores harum impedit enim."
+    `+os.Args[0]+` user retrieve --token "Ex sed."
 `, os.Args[0])
 }
 
-func userProfileCreateUsage() {
-	fmt.Fprintf(os.Stderr, `%s [flags] user-profile create -body JSON
+func userCreateUsage() {
+	fmt.Fprintf(os.Stderr, `%s [flags] user create -body JSON
 
-Add new user and return its ID.
+Add new user
     -body JSON: 
 
 Example:
-    `+os.Args[0]+` user-profile create --body '{
+    `+os.Args[0]+` user create --body '{
       "email": "123@456.com",
       "password": "123456"
    }'
 `, os.Args[0])
 }
 
-func userProfileSigninUsage() {
-	fmt.Fprintf(os.Stderr, `%s [flags] user-profile signin -body JSON
+func userSigninUsage() {
+	fmt.Fprintf(os.Stderr, `%s [flags] user signin -body JSON
 
 Creates a valid JWT
     -body JSON: 
 
 Example:
-    `+os.Args[0]+` user-profile signin --body '{
+    `+os.Args[0]+` user signin --body '{
       "email": "1@1.com",
       "password": "123456"
    }'
 `, os.Args[0])
 }
 
-func userProfileUpdateUsage() {
-	fmt.Fprintf(os.Stderr, `%s [flags] user-profile update -body JSON -token STRING
+func userUpdateUsage() {
+	fmt.Fprintf(os.Stderr, `%s [flags] user update -body JSON -token STRING
 
 Update avatar and nickname about user
     -body JSON: 
     -token STRING: 
 
 Example:
-    `+os.Args[0]+` user-profile update --body '{
-      "avator": "https://www.baidu.com/img/bd_logo1.png?where=super",
+    `+os.Args[0]+` user update --body '{
+      "avatar": "https://www.baidu.com/img/bd_logo1.png?where=super",
       "nickname": "Bobby"
-   }' --token "Qui consequatur."
+   }' --token "Ea et aperiam reiciendis."
+`, os.Args[0])
+}
+
+func userSendEmailUsage() {
+	fmt.Fprintf(os.Stderr, `%s [flags] user send-email -body JSON
+
+Send email to active user
+    -body JSON: 
+
+Example:
+    `+os.Args[0]+` user send-email --body '{
+      "email": "123@456.com"
+   }'
+`, os.Args[0])
+}
+
+func userActiveEmailUsage() {
+	fmt.Fprintf(os.Stderr, `%s [flags] user active-email -code STRING
+
+Active email to user
+    -code STRING: The code for email to active
+
+Example:
+    `+os.Args[0]+` user active-email --code "123456"
 `, os.Args[0])
 }

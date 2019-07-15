@@ -8,14 +8,12 @@ import (
 	"os"
 	"sync"
 	"time"
-	user "user"
-	email "user/gen/email"
-	file "user/gen/file"
-	emailsvr "user/gen/http/email/server"
-	filesvr "user/gen/http/file/server"
-	swaggersvr "user/gen/http/swagger/server"
-	userprofilesvr "user/gen/http/user_profile/server"
-	userprofile "user/gen/user_profile"
+	"user-srv/app"
+	"user-srv/gen/file"
+	filesvr "user-srv/gen/http/file/server"
+	swaggersvr "user-srv/gen/http/swagger/server"
+	usersvr "user-srv/gen/http/user/server"
+	"user-srv/gen/user"
 
 	goahttp "goa.design/goa/v3/http"
 	httpmdlwr "goa.design/goa/v3/http/middleware"
@@ -24,7 +22,7 @@ import (
 
 // handleHTTPServer starts configures and starts a HTTP server on the given
 // URL. It shuts down the server if any error is received in the error channel.
-func handleHTTPServer(ctx context.Context, u *url.URL, userProfileEndpoints *userprofile.Endpoints, emailEndpoints *email.Endpoints, fileEndpoints *file.Endpoints, wg *sync.WaitGroup, errc chan error, logger *log.Logger, debug bool) {
+func handleHTTPServer(ctx context.Context, u *url.URL, userEndpoints *user.Endpoints, fileEndpoints *file.Endpoints, wg *sync.WaitGroup, errc chan error, logger *log.Logger, debug bool) {
 
 	// Setup goa log adapter.
 	var (
@@ -55,23 +53,20 @@ func handleHTTPServer(ctx context.Context, u *url.URL, userProfileEndpoints *use
 	// the service input and output data structures to HTTP requests and
 	// responses.
 	var (
-		userProfileServer *userprofilesvr.Server
-		emailServer       *emailsvr.Server
-		fileServer        *filesvr.Server
-		swaggerServer     *swaggersvr.Server
+		userServer    *usersvr.Server
+		swaggerServer *swaggersvr.Server
+		fileServer    *filesvr.Server
 	)
 	{
 		eh := errorHandler(logger)
-		userProfileServer = userprofilesvr.New(userProfileEndpoints, mux, dec, enc, eh)
-		emailServer = emailsvr.New(emailEndpoints, mux, dec, enc, eh)
-		fileServer = filesvr.New(fileEndpoints, mux, dec, enc, eh, user.FileUploadDecoderFunc)
+		userServer = usersvr.New(userEndpoints, mux, dec, enc, eh)
 		swaggerServer = swaggersvr.New(nil, mux, dec, enc, eh)
+		fileServer = filesvr.New(fileEndpoints, mux, dec, enc, eh, app.FileUploadDecoderFunc)
 	}
 	// Configure the mux.
-	userprofilesvr.Mount(mux, userProfileServer)
-	emailsvr.Mount(mux, emailServer)
-	filesvr.Mount(mux, fileServer)
+	usersvr.Mount(mux, userServer)
 	swaggersvr.Mount(mux)
+	filesvr.Mount(mux, fileServer)
 
 	// Wrap the multiplexer with additional middlewares. Middlewares mounted
 	// here apply to all the service endpoints.
@@ -87,16 +82,13 @@ func handleHTTPServer(ctx context.Context, u *url.URL, userProfileEndpoints *use
 	// Start HTTP server using default configuration, change the code to
 	// configure the server as required by your service.
 	srv := &http.Server{Addr: u.Host, Handler: handler}
-	for _, m := range userProfileServer.Mounts {
-		logger.Printf("HTTP %q mounted on %s %s", m.Method, m.Verb, m.Pattern)
-	}
-	for _, m := range emailServer.Mounts {
-		logger.Printf("HTTP %q mounted on %s %s", m.Method, m.Verb, m.Pattern)
-	}
-	for _, m := range fileServer.Mounts {
+	for _, m := range userServer.Mounts {
 		logger.Printf("HTTP %q mounted on %s %s", m.Method, m.Verb, m.Pattern)
 	}
 	for _, m := range swaggerServer.Mounts {
+		logger.Printf("HTTP %q mounted on %s %s", m.Method, m.Verb, m.Pattern)
+	}
+	for _, m := range fileServer.Mounts {
 		logger.Printf("HTTP %q mounted on %s %s", m.Method, m.Verb, m.Pattern)
 	}
 

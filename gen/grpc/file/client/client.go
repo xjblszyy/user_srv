@@ -3,13 +3,13 @@
 // file gRPC client
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package client
 
 import (
 	"context"
-	filepb "user/gen/grpc/file/pb"
+	filepb "user-srv/gen/grpc/file/pb"
 
 	goagrpc "goa.design/goa/v3/grpc"
 	goapb "goa.design/goa/v3/grpc/pb"
@@ -42,8 +42,6 @@ func (c *Client) Upload() goa.Endpoint {
 		if err != nil {
 			resp := goagrpc.DecodeError(err)
 			switch message := resp.(type) {
-			case *filepb.UploadFileUploadErrError:
-				return nil, NewUploadFileUploadErrError(message)
 			case *goapb.ErrorResponse:
 				return nil, goagrpc.NewServiceError(message)
 			default:

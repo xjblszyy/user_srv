@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net/smtp"
+	"strconv"
 	"strings"
-	. "user/utils"
+	. "user-srv/utils"
+	"user-srv/utils/redis"
 )
 
 func sendToEmail(user, password, host, to, subject, body, mailtype string) error {
@@ -23,9 +25,8 @@ func sendToEmail(user, password, host, to, subject, body, mailtype string) error
 	err := smtp.SendMail(host, auth, user, send_to, msg)
 	if err != nil{
 		return err
-	}else{
-		return nil
 	}
+	return nil
 }
 
 func SendToEmail(ToEmail, Url string){
@@ -35,10 +36,23 @@ func SendToEmail(ToEmail, Url string){
 	to := ToEmail
 
 	subject := YamlConfig.Email.Subject
-	fmt.Println(Url)
+	fmt.Println(Url) // TODO
 	body := fmt.Sprintf(`<html><body><h3><a href="%s">点击链接激活邮箱</a></h3></body></html>`, Url)
 	err := sendToEmail(user, password, host, to, subject, body, "html")
 	if err != nil{
 		log.Println("send email error: ", err)
 	}
+}
+
+
+func PreSendEmail(Id int, Email string){
+	Code := fmt.Sprintf("%v%v", GetRandomString(16), Id)
+	Expira := YamlConfig.Email.EmailCodeExp
+	err := redis.RedisCnn.Set(Code, strconv.Itoa(int(Id)), Expira)
+	if err != nil {
+		log.Println("redis set key and value error: ", err)
+	}
+	baseUrl := YamlConfig.Email.ActiveUrl
+	Url := fmt.Sprintf(baseUrl + "/%s", Code)  // TODO
+	go SendToEmail(Email, Url)
 }

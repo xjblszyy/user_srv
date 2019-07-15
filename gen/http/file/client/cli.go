@@ -3,14 +3,14 @@
 // file HTTP client CLI support package
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package client
 
 import (
 	"encoding/json"
 	"fmt"
-	file "user/gen/file"
+	file "user-srv/gen/file"
 )
 
 // BuildUploadPayload builds the payload for the file upload endpoint from CLI
@@ -21,7 +21,7 @@ func BuildUploadPayload(fileUploadBody string) (*file.UploadPayload, error) {
 	{
 		err = json.Unmarshal([]byte(fileUploadBody), &body)
 		if err != nil {
-			return nil, fmt.Errorf("invalid JSON for body, example of valid JSON:\n%s", "'{\n      \"file\": \"Eaque quia cupiditate cumque quibusdam accusantium et.\"\n   }'")
+			return nil, fmt.Errorf("invalid JSON for body, example of valid JSON:\n%s", "'{\n      \"file\": \"Et expedita earum delectus.\"\n   }'")
 		}
 	}
 	v := &file.UploadPayload{

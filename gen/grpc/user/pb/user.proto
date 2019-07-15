@@ -1,0 +1,105 @@
+// Code generated with goa v3.0.2, DO NOT EDIT.
+//
+// user protocol buffer definition
+//
+// Command:
+// $ goa gen user-srv/design
+
+syntax = "proto3";
+
+package user;
+
+option go_package = "userpb";
+
+// The user service makes it possible to view, add or update user info.
+service User {
+	// Show user info by Token
+	rpc Retrieve (RetrieveRequest) returns (RetrieveResponse);
+	// Add new user
+	rpc Create (CreateRequest) returns (CreateResponse);
+	// Creates a valid JWT
+	rpc Signin (SigninRequest) returns (SigninResponse);
+	// Update avatar and nickname about user
+	rpc Update (UpdateRequest) returns (UpdateResponse);
+	// Send email to active user
+	rpc SendEmail (SendEmailRequest) returns (SendEmailResponse);
+	// Active email to user
+	rpc ActiveEmail (ActiveEmailRequest) returns (ActiveEmailResponse);
+}
+
+message RetrieveRequest {
+}
+
+message RetrieveResponse {
+	// code
+	sint32 code = 1;
+	// message
+	string message_ = 2;
+	string data = 3;
+}
+
+message CreateRequest {
+	// email of userProfile
+	string email = 1;
+	// password of userProfile
+	string password = 2;
+}
+
+message CreateResponse {
+	// code
+	sint32 code = 1;
+	// message
+	string message_ = 2;
+	string data = 3;
+}
+
+message SigninRequest {
+	// Email used to perform signin
+	string email = 1;
+	// Password used to perform signin
+	string password = 2;
+}
+
+message SigninResponse {
+	// code
+	sint32 code = 1;
+	// message
+	string message_ = 2;
+	string data = 3;
+}
+
+message UpdateRequest {
+	// avatar of user
+	string avatar = 1;
+	// nickname of user
+	string nickname = 2;
+}
+
+message UpdateResponse {
+}
+
+message SendEmailRequest {
+	// email of userProfile
+	string email = 1;
+}
+
+message SendEmailResponse {
+	// code
+	sint32 code = 1;
+	// message
+	string message_ = 2;
+	string data = 3;
+}
+
+message ActiveEmailRequest {
+	// The code for email to active
+	string code = 1;
+}
+
+message ActiveEmailResponse {
+	// code
+	sint32 code = 1;
+	// message
+	string message_ = 2;
+	string data = 3;
+}

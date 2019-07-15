@@ -3,7 +3,7 @@
 // file client
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package file
 
@@ -27,13 +27,13 @@ func NewClient(upload goa.Endpoint) *Client {
 
 // Upload calls the "upload" endpoint of the "file" service.
 // Upload may return the following errors:
-//	- "file_upload_err" (type *FileUploadErr): file upload error
+//	- "file_upload_err" (type *goa.ServiceError): file upload error
 //	- error: internal error
-func (c *Client) Upload(ctx context.Context, p *UploadPayload) (res string, err error) {
+func (c *Client) Upload(ctx context.Context, p *UploadPayload) (res *ResponseData, err error) {
 	var ires interface{}
 	ires, err = c.UploadEndpoint(ctx, p)
 	if err != nil {
 		return
 	}
-	return ires.(string), nil
+	return ires.(*ResponseData), nil
 }

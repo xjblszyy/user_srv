@@ -3,6 +3,6 @@
 // swagger HTTP client encoders and decoders
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package client

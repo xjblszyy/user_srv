@@ -3,6 +3,6 @@
 // swagger HTTP server types
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package server

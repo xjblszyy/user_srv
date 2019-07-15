@@ -3,13 +3,14 @@
 // file gRPC client types
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package client
 
 import (
-	file "user/gen/file"
-	filepb "user/gen/grpc/file/pb"
+	file "user-srv/gen/file"
+	fileviews "user-srv/gen/file/views"
+	filepb "user-srv/gen/grpc/file/pb"
 )
 
 // NewUploadRequest builds the gRPC request type from the payload of the
@@ -23,17 +24,12 @@ func NewUploadRequest(payload *file.UploadPayload) *filepb.UploadRequest {
 
 // NewUploadResult builds the result type of the "upload" endpoint of the
 // "file" service from the gRPC response type.
-func NewUploadResult(message *filepb.UploadResponse) string {
-	result := message.Field
-	return result
-}
-
-// NewUploadFileUploadErrError builds the error type of the "upload" endpoint
-// of the "file" service from the gRPC error response type.
-func NewUploadFileUploadErrError(message *filepb.UploadFileUploadErrError) *file.FileUploadErr {
-	er := &file.FileUploadErr{
-		Message: message.Message_,
-		ID:      message.Id,
+func NewUploadResult(message *filepb.UploadResponse) *fileviews.ResponseDataView {
+	result := &fileviews.ResponseDataView{
+		Message: &message.Message_,
+		Data:    &message.Data,
 	}
-	return er
+	codeptr := int(message.Code)
+	result.Code = &codeptr
+	return result
 }

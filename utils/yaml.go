@@ -4,6 +4,8 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
+	"os"
+	"time"
 )
 
 type Config struct {
@@ -27,6 +29,7 @@ type Config struct {
 		Addr string `yaml:"addr"`
 		Password string `yaml:"password"`
 		Db int `yaml:"db"`
+
 	}
 	Oss struct{
 		Endpoint string `yaml:"endpoint"`
@@ -39,22 +42,25 @@ type Config struct {
 		Password string `yaml:"password"`
 		Host string `yaml:"host"`
 		Subject string `yaml:"subject"`
+		EmailCodeExp time.Duration `yaml:"emailCodeExp"`
+		ActiveUrl string `yaml:"activeUrl"`
 	}
 	Jwt struct{
 		Secret string `yaml:"secret"`
+		ExpHour int `yaml:"expHour"`
 	}
 }
 
 var YamlConfig Config
 
-func init() {
-	// fileName := os.Getenv("CONFIGPATH")
-	config , err := ioutil.ReadFile("./config.yaml")
+func InitConfig() {
+	fileName := os.Getenv("CONFIGPATH")
+	config , err := ioutil.ReadFile(fileName)
 	if err != nil{
 		panic("can not find CONFIGPATH in envs")
 	}
 	err = yaml.Unmarshal(config, &YamlConfig)
 	if err != nil{
-		log.Println(err)
+		log.Fatalln(err)
 	}
 }

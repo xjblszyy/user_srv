@@ -3,13 +3,14 @@
 // file gRPC server types
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package server
 
 import (
-	file "user/gen/file"
-	filepb "user/gen/grpc/file/pb"
+	file "user-srv/gen/file"
+	fileviews "user-srv/gen/file/views"
+	filepb "user-srv/gen/grpc/file/pb"
 )
 
 // NewUploadPayload builds the payload of the "upload" endpoint of the "file"
@@ -23,18 +24,22 @@ func NewUploadPayload(message *filepb.UploadRequest) *file.UploadPayload {
 
 // NewUploadResponse builds the gRPC response type from the result of the
 // "upload" endpoint of the "file" service.
-func NewUploadResponse(result string) *filepb.UploadResponse {
+func NewUploadResponse(result *fileviews.ResponseDataView) *filepb.UploadResponse {
 	message := &filepb.UploadResponse{}
-	message.Field = result
-	return message
-}
-
-// NewUploadFileUploadErrError builds the gRPC error response type from the
-// error of the "upload" endpoint of the "file" service.
-func NewUploadFileUploadErrError(er *file.FileUploadErr) *filepb.UploadFileUploadErrError {
-	message := &filepb.UploadFileUploadErrError{
-		Message_: er.Message,
-		Id:       er.ID,
+	if result.Code != nil {
+		message.Code = int32(*result.Code)
+	}
+	if result.Message != nil {
+		message.Message_ = *result.Message
+	}
+	if result.Data != nil {
+		message.Data = *result.Data
+	}
+	if result.Code == nil {
+		message.Code = 200
+	}
+	if result.Message == nil {
+		message.Message_ = "success"
 	}
 	return message
 }

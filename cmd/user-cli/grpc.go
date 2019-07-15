@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	cli "user/gen/grpc/cli/user"
+	cli "user-srv/gen/grpc/cli/user"
 
 	goa "goa.design/goa/v3/pkg"
 	"google.golang.org/grpc"

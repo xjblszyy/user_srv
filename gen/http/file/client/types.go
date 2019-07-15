@@ -3,12 +3,13 @@
 // file HTTP client types
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package client
 
 import (
-	file "user/gen/file"
+	file "user-srv/gen/file"
+	fileviews "user-srv/gen/file/views"
 
 	goa "goa.design/goa/v3/pkg"
 )
@@ -20,13 +21,32 @@ type UploadRequestBody struct {
 	File string `form:"file" json:"file" xml:"file"`
 }
 
+// UploadResponseBody is the type of the "file" service "upload" endpoint HTTP
+// response body.
+type UploadResponseBody struct {
+	// code
+	Code *int `form:"code,omitempty" json:"code,omitempty" xml:"code,omitempty"`
+	// message
+	Message *string `form:"message,omitempty" json:"message,omitempty" xml:"message,omitempty"`
+	Data    *string `form:"data,omitempty" json:"data,omitempty" xml:"data,omitempty"`
+}
+
 // UploadFileUploadErrResponseBody is the type of the "file" service "upload"
 // endpoint HTTP response body for the "file_upload_err" error.
 type UploadFileUploadErrResponseBody struct {
-	// Message of error
-	Message *string `form:"message,omitempty" json:"message,omitempty" xml:"message,omitempty"`
-	// ID of missing user
+	// Name is the name of this class of errors.
+	Name *string `form:"name,omitempty" json:"name,omitempty" xml:"name,omitempty"`
+	// ID is a unique identifier for this particular occurrence of the problem.
 	ID *string `form:"id,omitempty" json:"id,omitempty" xml:"id,omitempty"`
+	// Message is a human-readable explanation specific to this occurrence of the
+	// problem.
+	Message *string `form:"message,omitempty" json:"message,omitempty" xml:"message,omitempty"`
+	// Is the error temporary?
+	Temporary *bool `form:"temporary,omitempty" json:"temporary,omitempty" xml:"temporary,omitempty"`
+	// Is the error a timeout?
+	Timeout *bool `form:"timeout,omitempty" json:"timeout,omitempty" xml:"timeout,omitempty"`
+	// Is the error a server-side fault?
+	Fault *bool `form:"fault,omitempty" json:"fault,omitempty" xml:"fault,omitempty"`
 }
 
 // NewUploadRequestBody builds the HTTP request body from the payload of the
@@ -38,12 +58,27 @@ func NewUploadRequestBody(p *file.UploadPayload) *UploadRequestBody {
 	return body
 }
 
+// NewUploadResponseDataOK builds a "file" service "upload" endpoint result
+// from a HTTP "OK" response.
+func NewUploadResponseDataOK(body *UploadResponseBody) *fileviews.ResponseDataView {
+	v := &fileviews.ResponseDataView{
+		Code:    body.Code,
+		Message: body.Message,
+		Data:    body.Data,
+	}
+	return v
+}
+
 // NewUploadFileUploadErr builds a file service upload endpoint file_upload_err
 // error.
-func NewUploadFileUploadErr(body *UploadFileUploadErrResponseBody) *file.FileUploadErr {
-	v := &file.FileUploadErr{
-		Message: *body.Message,
-		ID:      *body.ID,
+func NewUploadFileUploadErr(body *UploadFileUploadErrResponseBody) *goa.ServiceError {
+	v := &goa.ServiceError{
+		Name:      *body.Name,
+		ID:        *body.ID,
+		Message:   *body.Message,
+		Temporary: *body.Temporary,
+		Timeout:   *body.Timeout,
+		Fault:     *body.Fault,
 	}
 	return v
 }
@@ -51,11 +86,23 @@ func NewUploadFileUploadErr(body *UploadFileUploadErrResponseBody) *file.FileUpl
 // ValidateUploadFileUploadErrResponseBody runs the validations defined on
 // upload_file_upload_err_response_body
 func ValidateUploadFileUploadErrResponseBody(body *UploadFileUploadErrResponseBody) (err error) {
-	if body.Message == nil {
-		err = goa.MergeErrors(err, goa.MissingFieldError("message", "body"))
+	if body.Name == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("name", "body"))
 	}
 	if body.ID == nil {
 		err = goa.MergeErrors(err, goa.MissingFieldError("id", "body"))
+	}
+	if body.Message == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("message", "body"))
+	}
+	if body.Temporary == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("temporary", "body"))
+	}
+	if body.Timeout == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("timeout", "body"))
+	}
+	if body.Fault == nil {
+		err = goa.MergeErrors(err, goa.MissingFieldError("fault", "body"))
 	}
 	return
 }

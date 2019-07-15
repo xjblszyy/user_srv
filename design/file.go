@@ -16,8 +16,8 @@ var _ = Service("file", func() {
 			Field(1, "file", String, "file")
 			Required("file")
 		})
-		Result(String)
-		Error("file_upload_err", FileUploadErr, "file upload error")
+		Result(ResponseData)
+		Error("file_upload_err", ErrorResult, "file upload error")
 		HTTP(func() {
 			POST("/upload")
 			Response(StatusOK)

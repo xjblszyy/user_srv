@@ -3,7 +3,7 @@
 // file HTTP server
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package server
 
@@ -11,7 +11,7 @@ import (
 	"context"
 	"mime/multipart"
 	"net/http"
-	file "user/gen/file"
+	file "user-srv/gen/file"
 
 	goahttp "goa.design/goa/v3/http"
 	goa "goa.design/goa/v3/pkg"

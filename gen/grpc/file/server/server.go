@@ -3,14 +3,14 @@
 // file gRPC server
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package server
 
 import (
 	"context"
-	file "user/gen/file"
-	filepb "user/gen/grpc/file/pb"
+	file "user-srv/gen/file"
+	filepb "user-srv/gen/grpc/file/pb"
 
 	goagrpc "goa.design/goa/v3/grpc"
 	goa "goa.design/goa/v3/pkg"
@@ -53,8 +53,7 @@ func (s *Server) Upload(ctx context.Context, message *filepb.UploadRequest) (*fi
 		if en, ok := err.(ErrorNamer); ok {
 			switch en.ErrorName() {
 			case "file_upload_err":
-				er := err.(*file.FileUploadErr)
-				return nil, goagrpc.NewStatusError(codes.NotFound, err, NewUploadFileUploadErrError(er))
+				return nil, goagrpc.NewStatusError(codes.NotFound, err, goagrpc.NewErrorResponse(err))
 			}
 		}
 		return nil, goagrpc.EncodeError(err)

@@ -12,7 +12,7 @@ postgresql:
   sslmode: "disable"
   maxOpenConns: 100
   maxIdleConns: 10
-  debug : true
+  debug : false
 
 redis:
   addr: "0.0.0.0:6379"
@@ -20,16 +20,18 @@ redis:
   db : 0
 
 oss:
-  endpoint: "oss-cn-xxx.aliyuncs.com"
-  accessKey: "aaa"
-  accessSecretKey: "bbb"
-  bucketName: "ccc-ddd"
+  endpoint: "oss-cn-.aliyuncs.com"
+  accessKey: ""
+  accessSecretKey: ""
+  bucketName: "szyy-user"
 
 email:
-  user: "1@1.com"
-  password: "eee"
-  host: "smtp.fff.com:587"
+  user: "@qq.com"
+  password: ""
+  host: "smtp.qq.com:587"
   subject: "welcome use iot system, pleace active your email"
+  codeExpire: 10*60*1000*1000
+  activeUrl: "http://0.0.0.0/user/email"
 
 jwt:
   secret: "secret"

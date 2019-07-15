@@ -3,18 +3,21 @@
 // file service
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package file
 
 import (
 	"context"
+	fileviews "user-srv/gen/file/views"
+
+	goa "goa.design/goa/v3/pkg"
 )
 
 // The file service makes it possible to upload static file.
 type Service interface {
 	// Upload static file
-	Upload(context.Context, *UploadPayload) (res string, err error)
+	Upload(context.Context, *UploadPayload) (res *ResponseData, err error)
 }
 
 // ServiceName is the name of the service as defined in the design. This is the
@@ -33,20 +36,76 @@ type UploadPayload struct {
 	File string
 }
 
-// File upload error
-type FileUploadErr struct {
-	// Message of error
+// ResponseData is the result type of the file service upload method.
+type ResponseData struct {
+	// code
+	Code int
+	// message
 	Message string
-	// ID of missing user
-	ID string
+	Data    string
 }
 
-// Error returns an error description.
-func (e *FileUploadErr) Error() string {
-	return "File upload error"
+// MakeFileUploadErr builds a goa.ServiceError from an error.
+func MakeFileUploadErr(err error) *goa.ServiceError {
+	return &goa.ServiceError{
+		Name:    "file_upload_err",
+		ID:      goa.NewErrorID(),
+		Message: err.Error(),
+	}
 }
 
-// ErrorName returns "FileUploadErr".
-func (e *FileUploadErr) ErrorName() string {
-	return e.Message
+// NewResponseData initializes result type ResponseData from viewed result type
+// ResponseData.
+func NewResponseData(vres *fileviews.ResponseData) *ResponseData {
+	var res *ResponseData
+	switch vres.View {
+	case "default", "":
+		res = newResponseData(vres.Projected)
+	}
+	return res
+}
+
+// NewViewedResponseData initializes viewed result type ResponseData from
+// result type ResponseData using the given view.
+func NewViewedResponseData(res *ResponseData, view string) *fileviews.ResponseData {
+	var vres *fileviews.ResponseData
+	switch view {
+	case "default", "":
+		p := newResponseDataView(res)
+		vres = &fileviews.ResponseData{p, "default"}
+	}
+	return vres
+}
+
+// newResponseData converts projected type ResponseData to service type
+// ResponseData.
+func newResponseData(vres *fileviews.ResponseDataView) *ResponseData {
+	res := &ResponseData{}
+	if vres.Code != nil {
+		res.Code = *vres.Code
+	}
+	if vres.Message != nil {
+		res.Message = *vres.Message
+	}
+	if vres.Data != nil {
+		res.Data = *vres.Data
+	}
+	if vres.Code == nil {
+		res.Code = 200
+	}
+	if vres.Message == nil {
+		res.Message = "success"
+	}
+	return res
+}
+
+// newResponseDataView projects result type ResponseData to projected type
+// ResponseDataView using the "default" view.
+func newResponseDataView(res *ResponseData) *fileviews.ResponseDataView {
+	vres := &fileviews.ResponseDataView{
+		Code:    &res.Code,
+		Message: &res.Message,
+		Data:    &res.Data,
+	}
+	return vres
 }

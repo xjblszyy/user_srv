@@ -1,15 +1,16 @@
 package design
 
-import . "goa.design/goa/v3/dsl"
+import (
+	. "goa.design/goa/v3/dsl"
+)
 
-
-var _ = API("user", func() {
-	Title("User Service")
-	Description("HTTP service for managing user service")
+var _ = API("user-srv", func() {
+	Title("UserSrv Service")
+	Description("HTTP service for managing user-srv service")
 
 	Server("user", func() {
-		Description("user hosts the userProfile, file, email services.")
-		Services("userProfile", "email", "file", "swagger")
+		Description("user-srv hosts the user, file, email services.")
+		Services("user", "swagger", "file")
 		Host("localhost", func() {
 			Description("default host")
 			URI("http://localhost:8000")
@@ -20,44 +21,31 @@ var _ = API("user", func() {
 
 // JWTAuth defines a security scheme that uses JWT tokens.
 var JWTAuth = JWTSecurity("jwt", func() {
-	Description(`Secures endpoint by requiring a valid JWT token retrieved via the signin endpoint. Supports scopes "api:read" and "api:write".`)
-	Scope("api:read", "Read-only access")
-	Scope("api:write", "Read and write access")
+	Description(`Secures endpoint by requiring a valid JWT token retrieved via the signin endpoint.`)
+	//Scope("api:read", "Read-only access")
+	//Scope("api:write", "Read and write access")
 })
 
-var UserProfile = ResultType("UserProfile", func() {
-	Description("UserProfile describes a user info in userProfile services.")
-	Reference(AddUser)
-	TypeName("UserProfile")
-
-	Attributes(func() {
-		Attribute("id", String, "ID is the unique id of the userProfile.", func() {
-			Example("123abc")
-			Meta("rpc:tag", "6")
-		})
-		Field(2, "email", func() {
-			Pattern(`\S+@\S+\.\S+`)
-			Example("123@456.com")
-			Meta("rpc:tag", "2")
-		})
-		Field(3, "password")
-		Field(4, "avator")
-		Field(5, "nickname")
+var ResponseData = ResultType("ResponseData", func() {
+	Description("The Response")
+	TypeName("responseData")
+	Attribute("code", Int, "code", func() {
+		Default(200)
+		Example(200)
+		Meta("rpc:tag", "1")
 	})
-
-	View("default", func() {
-		Attribute("id")
-		Attribute("email")
-		Attribute("avator")
-		Attribute("nickname")
+	Attribute("message", String, "message", func() {
+		Example("success")
+		Default("success")
+		Meta("rpc:tag", "2")
 	})
-
-	Required("id", "email", "password")
+	Field(3, "data", String)
+	Required("code", "message", "data")
 })
 
 var AddUser = Type("AddUser", func() {
 	Description("AddUser describes a user retrieved by userProfile services.")
-
+	TypeName("AddUser")
 	Attribute("email", String, "email of userProfile", func() {
 		Pattern(`\S+@\S+\.\S+`)
 		Example("123@456.com")
@@ -74,13 +62,13 @@ var AddUser = Type("AddUser", func() {
 })
 
 var UpdateUser = Type("UpdateUser", func(){
-	Description("UpdateUser describes update user info by userProfile services.")
+	Description("UpdateUser describes update user info by user services.")
 	TypeName("UpdateUser")
-	Attribute("avator", String, "avator of userProfile", func() {
+	Attribute("avatar", String, "avatar of user", func() {
 		Example("https://www.baidu.com/img/bd_logo1.png?where=super")
 		Meta("rpc:tag", "1")
 	})
-	Attribute("nickname", String, "nickname of userProfile", func() {
+	Attribute("nickname", String, "nickname of user", func() {
 		Example("Bobby")
 		Meta("rpc:tag", "2")
 	})
@@ -88,91 +76,80 @@ var UpdateUser = Type("UpdateUser", func(){
 		Description("JWT used for authentication")
 	})
 
-	Required("avator", "nickname", "token")
+	Required("avatar", "nickname", "token")
+})
+
+var Signin = Type("Signin", func() {
+	Description("user sign in")
+	TypeName("Signin")
+	Field(1, "email", String, "Email used to perform signin", func() {
+		Example("1@1.com")
+	})
+	Field(2, "password", String, "Password used to perform signin", func() {
+		Example("123456")
+	})
+	Required("email", "password")
+})
+
+var SendEmail = Type("SendEmail", func() {
+	Description("send email")
+	TypeName("SendEmail")
+	Attribute("email", String, "email of userProfile", func() {
+		Pattern(`\S+@\S+\.\S+`)
+		Example("123@456.com")
+		Meta("rpc:tag", "1")
+	})
+	Required("email")
+})
+
+var EmailCode = Type("EmailCode", func() {
+	Description("email code")
+	TypeName("email code")
+	Field(1, "code", String, "The code for email to active", func() {
+		Example("123456")
+		Meta("rpc:tag", "1")
+	})
+	Required("code")
 })
 
 // Creds defines the credentials to use for authenticating to service methods.
 var Creds = Type("Creds", func() {
+	TypeName("Creds")
 	Field(1, "jwt", String, "JWT token", func() {
 		Example("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ")
 	})
 	Required("jwt")
 })
 
-var NotFound = Type("NotFound", func() {
-	Description("NotFound is the type returned when attempting to show or delete a user that does not exist.")
-	Attribute("message", String, "Message of error", func() {
-		Meta("struct:error:name")
-		Example("user 1 not found")
-		Meta("rpc:tag", "1")
-	})
-	Field(2, "id", String, "ID of missing user")
-	Required("message", "id")
-})
+//var HTTP_200_OK = Type("Ok", func() {
+//	Description("Ok")
+//	TypeName("Ok")
+//	Attribute("message", String, "Message of error", func() {
+//		Meta("struct:error:name")
+//		Example("success")
+//		Meta("rpc:tag", "1")
+//	})
+//	Attribute("code", Int, "code", func() {
+//		Default(200)
+//		Example(200)
+//		Meta("rpc:tag", "2")
+//	})
+//	Required("message", "code")
+//})
+//
+//var HTTP_201_CREATED = Type("Created", func() {
+//	Description("Created")
+//	TypeName("Created")
+//	Attribute("message", String, "Message of error", func() {
+//		Meta("struct:error:name")
+//		Example("created success")
+//		Meta("rpc:tag", "1")
+//	})
+//	Attribute("code", Int, "code", func() {
+//		Default(201)
+//		Example(201)
+//		Meta("rpc:tag", "2")
+//	})
+//	Required("message", "code")
+//})
 
-var EmailExist = Type("EmailExist", func() {
-	Description("The email is exist and can not add user")
-	Attribute("message", String, "Message of error", func() {
-		Meta("struct:error:name")
-		Example("email is exist")
-		Meta("rpc:tag", "1")
-	})
-	Field(2, "id", String, "ID of missing user")
-	Required("message", "id")
-})
-
-var EmailOrPasswordError = Type("EmailOrPasswordError", func() {
-	Description("The email is error or password error")
-	Attribute("message", String, "Message of error", func() {
-		Meta("struct:error:name")
-		Example("email or password error")
-		Meta("rpc:tag", "1")
-	})
-	Field(2, "id", String, "ID of missing user")
-	Required("message", "id")
-})
-
-
-var TokenInvalide = Type("TokenInvalide", func() {
-	Description("The Token is invalid")
-	Attribute("message", String, "Message of error", func() {
-		Meta("struct:error:name")
-		Example("invalid token")
-		Meta("rpc:tag", "1")
-	})
-	Field(2, "id", String, "ID of missing user")
-	Required("message", "id")
-})
-
-var EmailInvalide = Type("EmailInvalide", func() {
-	Description("The Email is invalid")
-	Attribute("message", String, "Message of error", func() {
-		Meta("struct:error:name")
-		Example("invalid email")
-		Meta("rpc:tag", "1")
-	})
-	Field(2, "id", String, "ID of missing user")
-	Required("message", "id")
-})
-
-var EmailNotFound = Type("EmailNotFound", func() {
-	Description("The Email is not found")
-	Attribute("message", String, "Message of error", func() {
-		Meta("struct:error:name")
-		Example("email not found")
-		Meta("rpc:tag", "1")
-	})
-	Field(2, "id", String, "ID of missing user")
-	Required("message", "id")
-})
-
-var FileUploadErr = Type("FileUploadErr", func() {
-	Description("File upload error")
-	Attribute("message", String, "Message of error", func() {
-		Meta("struct:error:name")
-		Example("file upload error")
-		Meta("rpc:tag", "1")
-	})
-	Field(2, "id", String, "ID of missing user")
-	Required("message", "id")
-})

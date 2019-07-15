@@ -10,23 +10,29 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
-	"user"
-	"user/gen/email"
-	"user/gen/file"
-	userprofile "user/gen/user_profile"
-	. "user/utils"
+	"user-srv/app"
+	"user-srv/gen/file"
+	"user-srv/gen/user"
+	"user-srv/utils"
+	"user-srv/utils/db"
+	"user-srv/utils/oss"
+	"user-srv/utils/redis"
 )
 
 func main() {
 	// Define command line flags, add any other flag required to configure the
 	// service.
+	utils.InitConfig()
+	db.InitDB()
+	oss.InitOss()
+	redis.InitRedis()
 	var (
 		hostF     = flag.String("host", "localhost", "Server host (valid values: localhost)")
 		domainF   = flag.String("domain", "", "Host domain name (overrides host domain specified in service design)")
 		httpPortF = flag.String("http-port", "", "HTTP port (overrides host HTTP port specified in service design)")
 		grpcPortF = flag.String("grpc-port", "", "gRPC port (overrides host gRPC port specified in service design)")
 		secureF   = flag.Bool("secure", false, "Use secure scheme (https or grpcs)")
-		dbgF      = flag.Bool("debug", YamlConfig.Server.Debug, "Log request and response bodies")
+		dbgF      = flag.Bool("debug", false, "Log request and response bodies")
 	)
 	flag.Parse()
 
@@ -35,31 +41,27 @@ func main() {
 		logger *log.Logger
 	)
 	{
-		logger = log.New(os.Stderr, "[user] ", log.Ltime)
+		logger = log.New(os.Stderr, "[usersrv] ", log.Ltime)
 	}
 
 	// Initialize the services.
 	var (
-		userProfileSvc userprofile.Service
-		emailSvc       email.Service
-		fileSvc        file.Service
+		userSvc user.Service
+		fileSvc file.Service
 	)
 	{
-		userProfileSvc = user.NewUserProfile(logger)
-		emailSvc = user.NewEmail(logger)
-		fileSvc = user.NewFile(logger)
+		userSvc = app.NewUser(logger)
+		fileSvc = app.NewFile(logger)
 	}
 
 	// Wrap the services in endpoints that can be invoked from other services
 	// potentially running in different processes.
 	var (
-		userProfileEndpoints *userprofile.Endpoints
-		emailEndpoints       *email.Endpoints
-		fileEndpoints        *file.Endpoints
+		userEndpoints *user.Endpoints
+		fileEndpoints *file.Endpoints
 	)
 	{
-		userProfileEndpoints = userprofile.NewEndpoints(userProfileSvc)
-		emailEndpoints = email.NewEndpoints(emailSvc)
+		userEndpoints = user.NewEndpoints(userSvc)
 		fileEndpoints = file.NewEndpoints(fileSvc)
 	}
 
@@ -82,7 +84,7 @@ func main() {
 	switch *hostF {
 	case "localhost":
 		{
-			addr := YamlConfig.Server.Addr
+			addr := "http://localhost:8000"
 			u, err := url.Parse(addr)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "invalid URL %#v: %s", addr, err)
@@ -100,11 +102,11 @@ func main() {
 			} else if u.Port() == "" {
 				u.Host += ":80"
 			}
-			handleHTTPServer(ctx, u, userProfileEndpoints, emailEndpoints, fileEndpoints, &wg, errc, logger, *dbgF)
+			handleHTTPServer(ctx, u, userEndpoints, fileEndpoints, &wg, errc, logger, *dbgF)
 		}
 
 		{
-			addr := YamlConfig.Server.Grpc
+			addr := "grpc://localhost:8080"
 			u, err := url.Parse(addr)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "invalid URL %#v: %s", addr, err)
@@ -122,7 +124,7 @@ func main() {
 			} else if u.Port() == "" {
 				u.Host += ":8080"
 			}
-			handleGRPCServer(ctx, u, userProfileEndpoints, emailEndpoints, fileEndpoints, &wg, errc, logger, *dbgF)
+			handleGRPCServer(ctx, u, userEndpoints, fileEndpoints, &wg, errc, logger, *dbgF)
 		}
 
 	default:

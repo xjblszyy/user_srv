@@ -3,6 +3,6 @@
 // HTTP request path constructors for the swagger service.
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package server

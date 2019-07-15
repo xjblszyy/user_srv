@@ -3,12 +3,13 @@
 // file HTTP server types
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package server
 
 import (
-	file "user/gen/file"
+	file "user-srv/gen/file"
+	fileviews "user-srv/gen/file/views"
 
 	goa "goa.design/goa/v3/pkg"
 )
@@ -20,21 +21,55 @@ type UploadRequestBody struct {
 	File *string `form:"file,omitempty" json:"file,omitempty" xml:"file,omitempty"`
 }
 
+// UploadResponseBody is the type of the "file" service "upload" endpoint HTTP
+// response body.
+type UploadResponseBody struct {
+	// code
+	Code int `form:"code" json:"code" xml:"code"`
+	// message
+	Message string `form:"message" json:"message" xml:"message"`
+	Data    string `form:"data" json:"data" xml:"data"`
+}
+
 // UploadFileUploadErrResponseBody is the type of the "file" service "upload"
 // endpoint HTTP response body for the "file_upload_err" error.
 type UploadFileUploadErrResponseBody struct {
-	// Message of error
-	Message string `form:"message" json:"message" xml:"message"`
-	// ID of missing user
+	// Name is the name of this class of errors.
+	Name string `form:"name" json:"name" xml:"name"`
+	// ID is a unique identifier for this particular occurrence of the problem.
 	ID string `form:"id" json:"id" xml:"id"`
+	// Message is a human-readable explanation specific to this occurrence of the
+	// problem.
+	Message string `form:"message" json:"message" xml:"message"`
+	// Is the error temporary?
+	Temporary bool `form:"temporary" json:"temporary" xml:"temporary"`
+	// Is the error a timeout?
+	Timeout bool `form:"timeout" json:"timeout" xml:"timeout"`
+	// Is the error a server-side fault?
+	Fault bool `form:"fault" json:"fault" xml:"fault"`
+}
+
+// NewUploadResponseBody builds the HTTP response body from the result of the
+// "upload" endpoint of the "file" service.
+func NewUploadResponseBody(res *fileviews.ResponseDataView) *UploadResponseBody {
+	body := &UploadResponseBody{
+		Code:    *res.Code,
+		Message: *res.Message,
+		Data:    *res.Data,
+	}
+	return body
 }
 
 // NewUploadFileUploadErrResponseBody builds the HTTP response body from the
 // result of the "upload" endpoint of the "file" service.
-func NewUploadFileUploadErrResponseBody(res *file.FileUploadErr) *UploadFileUploadErrResponseBody {
+func NewUploadFileUploadErrResponseBody(res *goa.ServiceError) *UploadFileUploadErrResponseBody {
 	body := &UploadFileUploadErrResponseBody{
-		Message: res.Message,
-		ID:      res.ID,
+		Name:      res.Name,
+		ID:        res.ID,
+		Message:   res.Message,
+		Temporary: res.Temporary,
+		Timeout:   res.Timeout,
+		Fault:     res.Fault,
 	}
 	return body
 }

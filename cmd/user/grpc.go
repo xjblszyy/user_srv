@@ -6,15 +6,12 @@ import (
 	"net"
 	"net/url"
 	"sync"
-	email "user/gen/email"
-	file "user/gen/file"
-	emailpb "user/gen/grpc/email/pb"
-	emailsvr "user/gen/grpc/email/server"
-	filepb "user/gen/grpc/file/pb"
-	filesvr "user/gen/grpc/file/server"
-	user_profilepb "user/gen/grpc/user_profile/pb"
-	userprofilesvr "user/gen/grpc/user_profile/server"
-	userprofile "user/gen/user_profile"
+	file "user-srv/gen/file"
+	filepb "user-srv/gen/grpc/file/pb"
+	filesvr "user-srv/gen/grpc/file/server"
+	userpb "user-srv/gen/grpc/user/pb"
+	usersvr "user-srv/gen/grpc/user/server"
+	user "user-srv/gen/user"
 
 	grpcmiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpcmdlwr "goa.design/goa/v3/grpc/middleware"
@@ -24,7 +21,7 @@ import (
 
 // handleGRPCServer starts configures and starts a gRPC server on the given
 // URL. It shuts down the server if any error is received in the error channel.
-func handleGRPCServer(ctx context.Context, u *url.URL, userProfileEndpoints *userprofile.Endpoints, emailEndpoints *email.Endpoints, fileEndpoints *file.Endpoints, wg *sync.WaitGroup, errc chan error, logger *log.Logger, debug bool) {
+func handleGRPCServer(ctx context.Context, u *url.URL, userEndpoints *user.Endpoints, fileEndpoints *file.Endpoints, wg *sync.WaitGroup, errc chan error, logger *log.Logger, debug bool) {
 
 	// Setup goa log adapter.
 	var (
@@ -39,13 +36,11 @@ func handleGRPCServer(ctx context.Context, u *url.URL, userProfileEndpoints *use
 	// the service input and output data structures to gRPC requests and
 	// responses.
 	var (
-		userProfileServer *userprofilesvr.Server
-		emailServer       *emailsvr.Server
-		fileServer        *filesvr.Server
+		userServer *usersvr.Server
+		fileServer *filesvr.Server
 	)
 	{
-		userProfileServer = userprofilesvr.New(userProfileEndpoints, nil)
-		emailServer = emailsvr.New(emailEndpoints, nil)
+		userServer = usersvr.New(userEndpoints, nil)
 		fileServer = filesvr.New(fileEndpoints, nil)
 	}
 
@@ -58,8 +53,7 @@ func handleGRPCServer(ctx context.Context, u *url.URL, userProfileEndpoints *use
 	)
 
 	// Register the servers.
-	user_profilepb.RegisterUserProfileServer(srv, userProfileServer)
-	emailpb.RegisterEmailServer(srv, emailServer)
+	userpb.RegisterUserServer(srv, userServer)
 	filepb.RegisterFileServer(srv, fileServer)
 
 	for svc, info := range srv.GetServiceInfo() {

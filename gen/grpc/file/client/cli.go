@@ -3,15 +3,15 @@
 // file gRPC client CLI support package
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package client
 
 import (
 	"encoding/json"
 	"fmt"
-	file "user/gen/file"
-	filepb "user/gen/grpc/file/pb"
+	file "user-srv/gen/file"
+	filepb "user-srv/gen/grpc/file/pb"
 )
 
 // BuildUploadPayload builds the payload for the file upload endpoint from CLI
@@ -23,7 +23,7 @@ func BuildUploadPayload(fileUploadMessage string) (*file.UploadPayload, error) {
 		if fileUploadMessage != "" {
 			err = json.Unmarshal([]byte(fileUploadMessage), &message)
 			if err != nil {
-				return nil, fmt.Errorf("invalid JSON for message, example of valid JSON:\n%s", "'{\n      \"file\": \"Aperiam nostrum at aut occaecati perferendis.\"\n   }'")
+				return nil, fmt.Errorf("invalid JSON for message, example of valid JSON:\n%s", "'{\n      \"file\": \"Qui quas ut non sint.\"\n   }'")
 			}
 		}
 	}

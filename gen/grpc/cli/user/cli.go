@@ -3,7 +3,7 @@
 // user gRPC client CLI support package
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package cli
 
@@ -11,9 +11,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	emailc "user/gen/grpc/email/client"
-	filec "user/gen/grpc/file/client"
-	userprofilec "user/gen/grpc/user_profile/client"
+	filec "user-srv/gen/grpc/file/client"
+	userc "user-srv/gen/grpc/user/client"
 
 	goa "goa.design/goa/v3/pkg"
 	grpc "google.golang.org/grpc"
@@ -24,21 +23,17 @@ import (
 //    command (subcommand1|subcommand2|...)
 //
 func UsageCommands() string {
-	return `email (active|send-email)
-file upload
-user-profile (retrieve|create|signin|update)
+	return `file upload
+user (retrieve|create|signin|update|send-email|active-email)
 `
 }
 
 // UsageExamples produces an example of a valid invocation of the CLI tool.
 func UsageExamples() string {
-	return os.Args[0] + ` email active --message '{
-      "code": "Fuga velit corporis."
+	return os.Args[0] + ` file upload --message '{
+      "file": "Qui quas ut non sint."
    }'` + "\n" +
-		os.Args[0] + ` file upload --message '{
-      "file": "Aperiam nostrum at aut occaecati perferendis."
-   }'` + "\n" +
-		os.Args[0] + ` user-profile retrieve --token "Pariatur consequatur accusantium occaecati sint."` + "\n" +
+		os.Args[0] + ` user retrieve --token "Qui tenetur est cumque."` + "\n" +
 		""
 }
 
@@ -46,46 +41,42 @@ func UsageExamples() string {
 // line.
 func ParseEndpoint(cc *grpc.ClientConn, opts ...grpc.CallOption) (goa.Endpoint, interface{}, error) {
 	var (
-		emailFlags = flag.NewFlagSet("email", flag.ContinueOnError)
-
-		emailActiveFlags       = flag.NewFlagSet("active", flag.ExitOnError)
-		emailActiveMessageFlag = emailActiveFlags.String("message", "", "")
-
-		emailSendEmailFlags       = flag.NewFlagSet("send-email", flag.ExitOnError)
-		emailSendEmailMessageFlag = emailSendEmailFlags.String("message", "", "")
-
 		fileFlags = flag.NewFlagSet("file", flag.ContinueOnError)
 
 		fileUploadFlags       = flag.NewFlagSet("upload", flag.ExitOnError)
 		fileUploadMessageFlag = fileUploadFlags.String("message", "", "")
 
-		userProfileFlags = flag.NewFlagSet("user-profile", flag.ContinueOnError)
+		userFlags = flag.NewFlagSet("user", flag.ContinueOnError)
 
-		userProfileRetrieveFlags     = flag.NewFlagSet("retrieve", flag.ExitOnError)
-		userProfileRetrieveTokenFlag = userProfileRetrieveFlags.String("token", "REQUIRED", "")
+		userRetrieveFlags     = flag.NewFlagSet("retrieve", flag.ExitOnError)
+		userRetrieveTokenFlag = userRetrieveFlags.String("token", "REQUIRED", "")
 
-		userProfileCreateFlags       = flag.NewFlagSet("create", flag.ExitOnError)
-		userProfileCreateMessageFlag = userProfileCreateFlags.String("message", "", "")
+		userCreateFlags       = flag.NewFlagSet("create", flag.ExitOnError)
+		userCreateMessageFlag = userCreateFlags.String("message", "", "")
 
-		userProfileSigninFlags       = flag.NewFlagSet("signin", flag.ExitOnError)
-		userProfileSigninMessageFlag = userProfileSigninFlags.String("message", "", "")
+		userSigninFlags       = flag.NewFlagSet("signin", flag.ExitOnError)
+		userSigninMessageFlag = userSigninFlags.String("message", "", "")
 
-		userProfileUpdateFlags       = flag.NewFlagSet("update", flag.ExitOnError)
-		userProfileUpdateMessageFlag = userProfileUpdateFlags.String("message", "", "")
-		userProfileUpdateTokenFlag   = userProfileUpdateFlags.String("token", "REQUIRED", "")
+		userUpdateFlags       = flag.NewFlagSet("update", flag.ExitOnError)
+		userUpdateMessageFlag = userUpdateFlags.String("message", "", "")
+		userUpdateTokenFlag   = userUpdateFlags.String("token", "REQUIRED", "")
+
+		userSendEmailFlags       = flag.NewFlagSet("send-email", flag.ExitOnError)
+		userSendEmailMessageFlag = userSendEmailFlags.String("message", "", "")
+
+		userActiveEmailFlags       = flag.NewFlagSet("active-email", flag.ExitOnError)
+		userActiveEmailMessageFlag = userActiveEmailFlags.String("message", "", "")
 	)
-	emailFlags.Usage = emailUsage
-	emailActiveFlags.Usage = emailActiveUsage
-	emailSendEmailFlags.Usage = emailSendEmailUsage
-
 	fileFlags.Usage = fileUsage
 	fileUploadFlags.Usage = fileUploadUsage
 
-	userProfileFlags.Usage = userProfileUsage
-	userProfileRetrieveFlags.Usage = userProfileRetrieveUsage
-	userProfileCreateFlags.Usage = userProfileCreateUsage
-	userProfileSigninFlags.Usage = userProfileSigninUsage
-	userProfileUpdateFlags.Usage = userProfileUpdateUsage
+	userFlags.Usage = userUsage
+	userRetrieveFlags.Usage = userRetrieveUsage
+	userCreateFlags.Usage = userCreateUsage
+	userSigninFlags.Usage = userSigninUsage
+	userUpdateFlags.Usage = userUpdateUsage
+	userSendEmailFlags.Usage = userSendEmailUsage
+	userActiveEmailFlags.Usage = userActiveEmailUsage
 
 	if err := flag.CommandLine.Parse(os.Args[1:]); err != nil {
 		return nil, nil, err
@@ -102,12 +93,10 @@ func ParseEndpoint(cc *grpc.ClientConn, opts ...grpc.CallOption) (goa.Endpoint, 
 	{
 		svcn = flag.Arg(0)
 		switch svcn {
-		case "email":
-			svcf = emailFlags
 		case "file":
 			svcf = fileFlags
-		case "user-profile":
-			svcf = userProfileFlags
+		case "user":
+			svcf = userFlags
 		default:
 			return nil, nil, fmt.Errorf("unknown service %q", svcn)
 		}
@@ -123,16 +112,6 @@ func ParseEndpoint(cc *grpc.ClientConn, opts ...grpc.CallOption) (goa.Endpoint, 
 	{
 		epn = svcf.Arg(0)
 		switch svcn {
-		case "email":
-			switch epn {
-			case "active":
-				epf = emailActiveFlags
-
-			case "send-email":
-				epf = emailSendEmailFlags
-
-			}
-
 		case "file":
 			switch epn {
 			case "upload":
@@ -140,19 +119,25 @@ func ParseEndpoint(cc *grpc.ClientConn, opts ...grpc.CallOption) (goa.Endpoint, 
 
 			}
 
-		case "user-profile":
+		case "user":
 			switch epn {
 			case "retrieve":
-				epf = userProfileRetrieveFlags
+				epf = userRetrieveFlags
 
 			case "create":
-				epf = userProfileCreateFlags
+				epf = userCreateFlags
 
 			case "signin":
-				epf = userProfileSigninFlags
+				epf = userSigninFlags
 
 			case "update":
-				epf = userProfileUpdateFlags
+				epf = userUpdateFlags
+
+			case "send-email":
+				epf = userSendEmailFlags
+
+			case "active-email":
+				epf = userActiveEmailFlags
 
 			}
 
@@ -176,16 +161,6 @@ func ParseEndpoint(cc *grpc.ClientConn, opts ...grpc.CallOption) (goa.Endpoint, 
 	)
 	{
 		switch svcn {
-		case "email":
-			c := emailc.NewClient(cc, opts...)
-			switch epn {
-			case "active":
-				endpoint = c.Active()
-				data, err = emailc.BuildActivePayload(*emailActiveMessageFlag)
-			case "send-email":
-				endpoint = c.SendEmail()
-				data, err = emailc.BuildSendEmailPayload(*emailSendEmailMessageFlag)
-			}
 		case "file":
 			c := filec.NewClient(cc, opts...)
 			switch epn {
@@ -193,21 +168,27 @@ func ParseEndpoint(cc *grpc.ClientConn, opts ...grpc.CallOption) (goa.Endpoint, 
 				endpoint = c.Upload()
 				data, err = filec.BuildUploadPayload(*fileUploadMessageFlag)
 			}
-		case "user-profile":
-			c := userprofilec.NewClient(cc, opts...)
+		case "user":
+			c := userc.NewClient(cc, opts...)
 			switch epn {
 			case "retrieve":
 				endpoint = c.Retrieve()
-				data, err = userprofilec.BuildRetrievePayload(*userProfileRetrieveTokenFlag)
+				data, err = userc.BuildRetrievePayload(*userRetrieveTokenFlag)
 			case "create":
 				endpoint = c.Create()
-				data, err = userprofilec.BuildCreatePayload(*userProfileCreateMessageFlag)
+				data, err = userc.BuildCreatePayload(*userCreateMessageFlag)
 			case "signin":
 				endpoint = c.Signin()
-				data, err = userprofilec.BuildSigninPayload(*userProfileSigninMessageFlag)
+				data, err = userc.BuildSigninPayload(*userSigninMessageFlag)
 			case "update":
 				endpoint = c.Update()
-				data, err = userprofilec.BuildUpdatePayload(*userProfileUpdateMessageFlag, *userProfileUpdateTokenFlag)
+				data, err = userc.BuildUpdatePayload(*userUpdateMessageFlag, *userUpdateTokenFlag)
+			case "send-email":
+				endpoint = c.SendEmail()
+				data, err = userc.BuildSendEmailPayload(*userSendEmailMessageFlag)
+			case "active-email":
+				endpoint = c.ActiveEmail()
+				data, err = userc.BuildActiveEmailPayload(*userActiveEmailMessageFlag)
 			}
 		}
 	}
@@ -216,46 +197,6 @@ func ParseEndpoint(cc *grpc.ClientConn, opts ...grpc.CallOption) (goa.Endpoint, 
 	}
 
 	return endpoint, data, nil
-}
-
-// emailUsage displays the usage of the email command and its subcommands.
-func emailUsage() {
-	fmt.Fprintf(os.Stderr, `The email service makes it possible to active user and send active email.
-Usage:
-    %s [globalflags] email COMMAND [flags]
-
-COMMAND:
-    active: Active user by email code
-    send-email: Send email to active user
-
-Additional help:
-    %s email COMMAND --help
-`, os.Args[0], os.Args[0])
-}
-func emailActiveUsage() {
-	fmt.Fprintf(os.Stderr, `%s [flags] email active -message JSON
-
-Active user by email code
-    -message JSON: 
-
-Example:
-    `+os.Args[0]+` email active --message '{
-      "code": "Fuga velit corporis."
-   }'
-`, os.Args[0])
-}
-
-func emailSendEmailUsage() {
-	fmt.Fprintf(os.Stderr, `%s [flags] email send-email -message JSON
-
-Send email to active user
-    -message JSON: 
-
-Example:
-    `+os.Args[0]+` email send-email --message '{
-      "email": "123@456.com"
-   }'
-`, os.Args[0])
 }
 
 // fileUsage displays the usage of the file command and its subcommands.
@@ -279,78 +220,105 @@ Upload static file
 
 Example:
     `+os.Args[0]+` file upload --message '{
-      "file": "Aperiam nostrum at aut occaecati perferendis."
+      "file": "Qui quas ut non sint."
    }'
 `, os.Args[0])
 }
 
-// user-profileUsage displays the usage of the user-profile command and its
-// subcommands.
-func userProfileUsage() {
-	fmt.Fprintf(os.Stderr, `The userProfile service makes it possible to view, add or remove user info.
+// userUsage displays the usage of the user command and its subcommands.
+func userUsage() {
+	fmt.Fprintf(os.Stderr, `The user service makes it possible to view, add or update user info.
 Usage:
-    %s [globalflags] user-profile COMMAND [flags]
+    %s [globalflags] user COMMAND [flags]
 
 COMMAND:
-    retrieve: Show userProfile by Token
-    create: Add new user and return its ID.
+    retrieve: Show user info by Token
+    create: Add new user
     signin: Creates a valid JWT
     update: Update avatar and nickname about user
+    send-email: Send email to active user
+    active-email: Active email to user
 
 Additional help:
-    %s user-profile COMMAND --help
+    %s user COMMAND --help
 `, os.Args[0], os.Args[0])
 }
-func userProfileRetrieveUsage() {
-	fmt.Fprintf(os.Stderr, `%s [flags] user-profile retrieve -token STRING
+func userRetrieveUsage() {
+	fmt.Fprintf(os.Stderr, `%s [flags] user retrieve -token STRING
 
-Show userProfile by Token
+Show user info by Token
     -token STRING: 
 
 Example:
-    `+os.Args[0]+` user-profile retrieve --token "Pariatur consequatur accusantium occaecati sint."
+    `+os.Args[0]+` user retrieve --token "Qui tenetur est cumque."
 `, os.Args[0])
 }
 
-func userProfileCreateUsage() {
-	fmt.Fprintf(os.Stderr, `%s [flags] user-profile create -message JSON
+func userCreateUsage() {
+	fmt.Fprintf(os.Stderr, `%s [flags] user create -message JSON
 
-Add new user and return its ID.
+Add new user
     -message JSON: 
 
 Example:
-    `+os.Args[0]+` user-profile create --message '{
+    `+os.Args[0]+` user create --message '{
       "email": "123@456.com",
       "password": "123456"
    }'
 `, os.Args[0])
 }
 
-func userProfileSigninUsage() {
-	fmt.Fprintf(os.Stderr, `%s [flags] user-profile signin -message JSON
+func userSigninUsage() {
+	fmt.Fprintf(os.Stderr, `%s [flags] user signin -message JSON
 
 Creates a valid JWT
     -message JSON: 
 
 Example:
-    `+os.Args[0]+` user-profile signin --message '{
+    `+os.Args[0]+` user signin --message '{
       "email": "1@1.com",
       "password": "123456"
    }'
 `, os.Args[0])
 }
 
-func userProfileUpdateUsage() {
-	fmt.Fprintf(os.Stderr, `%s [flags] user-profile update -message JSON -token STRING
+func userUpdateUsage() {
+	fmt.Fprintf(os.Stderr, `%s [flags] user update -message JSON -token STRING
 
 Update avatar and nickname about user
     -message JSON: 
     -token STRING: 
 
 Example:
-    `+os.Args[0]+` user-profile update --message '{
-      "avator": "https://www.baidu.com/img/bd_logo1.png?where=super",
+    `+os.Args[0]+` user update --message '{
+      "avatar": "https://www.baidu.com/img/bd_logo1.png?where=super",
       "nickname": "Bobby"
-   }' --token "Ratione eligendi."
+   }' --token "Quaerat ut cupiditate voluptate inventore numquam."
+`, os.Args[0])
+}
+
+func userSendEmailUsage() {
+	fmt.Fprintf(os.Stderr, `%s [flags] user send-email -message JSON
+
+Send email to active user
+    -message JSON: 
+
+Example:
+    `+os.Args[0]+` user send-email --message '{
+      "email": "123@456.com"
+   }'
+`, os.Args[0])
+}
+
+func userActiveEmailUsage() {
+	fmt.Fprintf(os.Stderr, `%s [flags] user active-email -message JSON
+
+Active email to user
+    -message JSON: 
+
+Example:
+    `+os.Args[0]+` user active-email --message '{
+      "code": "123456"
+   }'
 `, os.Args[0])
 }

@@ -3,14 +3,14 @@
 // swagger HTTP server
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package server
 
 import (
 	"context"
 	"net/http"
-	swagger "user/gen/swagger"
+	swagger "user-srv/gen/swagger"
 
 	goahttp "goa.design/goa/v3/http"
 )

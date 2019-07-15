@@ -3,14 +3,15 @@
 // file gRPC client encoders and decoders
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package client
 
 import (
 	"context"
-	file "user/gen/file"
-	filepb "user/gen/grpc/file/pb"
+	file "user-srv/gen/file"
+	fileviews "user-srv/gen/file/views"
+	filepb "user-srv/gen/grpc/file/pb"
 
 	goagrpc "goa.design/goa/v3/grpc"
 	"google.golang.org/grpc"
@@ -39,10 +40,20 @@ func EncodeUploadRequest(ctx context.Context, v interface{}, md *metadata.MD) (i
 
 // DecodeUploadResponse decodes responses from the file upload endpoint.
 func DecodeUploadResponse(ctx context.Context, v interface{}, hdr, trlr metadata.MD) (interface{}, error) {
+	var view string
+	{
+		if vals := hdr.Get("goa-view"); len(vals) > 0 {
+			view = vals[0]
+		}
+	}
 	message, ok := v.(*filepb.UploadResponse)
 	if !ok {
 		return nil, goagrpc.ErrInvalidType("file", "upload", "*filepb.UploadResponse", v)
 	}
 	res := NewUploadResult(message)
-	return res, nil
+	vres := &fileviews.ResponseData{Projected: res, View: view}
+	if err := fileviews.ValidateResponseData(vres); err != nil {
+		return nil, err
+	}
+	return file.NewResponseData(vres), nil
 }

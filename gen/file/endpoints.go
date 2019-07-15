@@ -3,7 +3,7 @@
 // file endpoints
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package file
 
@@ -35,6 +35,11 @@ func (e *Endpoints) Use(m func(goa.Endpoint) goa.Endpoint) {
 func NewUploadEndpoint(s Service) goa.Endpoint {
 	return func(ctx context.Context, req interface{}) (interface{}, error) {
 		p := req.(*UploadPayload)
-		return s.Upload(ctx, p)
+		res, err := s.Upload(ctx, p)
+		if err != nil {
+			return nil, err
+		}
+		vres := NewViewedResponseData(res, "default")
+		return vres, nil
 	}
 }

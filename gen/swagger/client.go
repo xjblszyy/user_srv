@@ -3,7 +3,7 @@
 // swagger client
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package swagger
 

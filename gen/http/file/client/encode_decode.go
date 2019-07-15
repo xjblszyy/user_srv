@@ -3,7 +3,7 @@
 // file HTTP client encoders and decoders
 //
 // Command:
-// $ goa gen user/design
+// $ goa gen user-srv/design
 
 package client
 
@@ -14,7 +14,8 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	file "user/gen/file"
+	file "user-srv/gen/file"
+	fileviews "user-srv/gen/file/views"
 
 	goahttp "goa.design/goa/v3/http"
 )
@@ -71,7 +72,7 @@ func NewFileUploadEncoder(encoderFn FileUploadEncoderFunc) func(r *http.Request)
 // upload endpoint. restoreBody controls whether the response body should be
 // restored after having been read.
 // DecodeUploadResponse may return the following errors:
-//	- "file_upload_err" (type *file.FileUploadErr): http.StatusBadRequest
+//	- "file_upload_err" (type *goa.ServiceError): http.StatusBadRequest
 //	- error: internal error
 func DecodeUploadResponse(decoder func(*http.Response) goahttp.Decoder, restoreBody bool) func(*http.Response) (interface{}, error) {
 	return func(resp *http.Response) (interface{}, error) {
@@ -90,14 +91,21 @@ func DecodeUploadResponse(decoder func(*http.Response) goahttp.Decoder, restoreB
 		switch resp.StatusCode {
 		case http.StatusOK:
 			var (
-				body string
+				body UploadResponseBody
 				err  error
 			)
 			err = decoder(resp).Decode(&body)
 			if err != nil {
 				return nil, goahttp.ErrDecodingError("file", "upload", err)
 			}
-			return body, nil
+			p := NewUploadResponseDataOK(&body)
+			view := "default"
+			vres := &fileviews.ResponseData{p, view}
+			if err = fileviews.ValidateResponseData(vres); err != nil {
+				return nil, goahttp.ErrValidationError("file", "upload", err)
+			}
+			res := file.NewResponseData(vres)
+			return res, nil
 		case http.StatusBadRequest:
 			var (
 				body UploadFileUploadErrResponseBody

@@ -3,8 +3,8 @@ package main
 import (
 	"net/http"
 	"time"
-	user "user"
-	cli "user/gen/http/cli/user"
+	"user-srv/app"
+	cli "user-srv/gen/http/cli/user"
 
 	goahttp "goa.design/goa/v3/http"
 	goa "goa.design/goa/v3/pkg"
@@ -28,7 +28,7 @@ func doHTTP(scheme, host string, timeout int, debug bool) (goa.Endpoint, interfa
 		goahttp.RequestEncoder,
 		goahttp.ResponseDecoder,
 		debug,
-		user.FileUploadEncoderFunc,
+		app.FileUploadEncoderFunc,
 	)
 }
 
